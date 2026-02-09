@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.soil.mapper.SoilPredictionMapper">
+    
+    <resultMap type="SoilPrediction" id="SoilPredictionResult">
+        <result property="id"    column="id"    />
+        <result property="fieldId"    column="field_id"    />
+        <result property="predictTime"    column="predict_time"    />
+        <result property="predictedHumidity"    column="predicted_humidity"    />
+        <result property="predictedTemperature"    column="predicted_temperature"    />
+        <result property="predictedEcValue"    column="predicted_ec_value"    />
+        <result property="predictedPhValue"    column="predicted_ph_value"    />
+        <result property="accuracy"    column="accuracy"    />
+        <result property="modelVersion"    column="model_version"    />
+        <result property="predictType"    column="predict_type"    />
+        <result property="rmseError"    column="rmse_error"    />
+        <result property="maeError"    column="mae_error"    />
+        <result property="confidence"    column="confidence"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectSoilPredictionVo">
+        select id, field_id, predict_time, predicted_humidity, predicted_temperature, predicted_ec_value, predicted_ph_value, accuracy, model_version, predict_type, rmse_error, mae_error, confidence, create_time, update_time from soil_prediction
+    </sql>
+
+    <select id="selectSoilPredictionList" parameterType="SoilPrediction" resultMap="SoilPredictionResult">
+        <include refid="selectSoilPredictionVo"/>
+        <where>  
+            <if test="fieldId != null  and fieldId != ''"> and field_id = #{fieldId}</if>
+            <if test="predictTime != null "> and predict_time = #{predictTime}</if>
+            <if test="predictedHumidity != null "> and predicted_humidity = #{predictedHumidity}</if>
+            <if test="predictedTemperature != null "> and predicted_temperature = #{predictedTemperature}</if>
+            <if test="predictedEcValue != null "> and predicted_ec_value = #{predictedEcValue}</if>
+            <if test="predictedPhValue != null "> and predicted_ph_value = #{predictedPhValue}</if>
+            <if test="accuracy != null "> and accuracy = #{accuracy}</if>
+            <if test="modelVersion != null  and modelVersion != ''"> and model_version = #{modelVersion}</if>
+            <if test="predictType != null  and predictType != ''"> and predict_type = #{predictType}</if>
+            <if test="rmseError != null "> and rmse_error = #{rmseError}</if>
+            <if test="maeError != null "> and mae_error = #{maeError}</if>
+            <if test="confidence != null "> and confidence = #{confidence}</if>
+        </where>
+        order by predict_time desc
+    </select>
+    
+    <select id="selectSoilPredictionById" parameterType="Long" resultMap="SoilPredictionResult">
+        <include refid="selectSoilPredictionVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectLatestPredictionByFieldId" parameterType="String" resultMap="SoilPredictionResult">
+        <include refid="selectSoilPredictionVo"/>
+        where field_id = #{fieldId}
+        order by predict_time desc
+        limit 1
+    </select>
+
+    <select id="selectPredictionHistoryByFieldId" resultMap="SoilPredictionResult">
+        <include refid="selectSoilPredictionVo"/>
+        where field_id = #{fieldId}
+        <if test="predictType != null and predictType != ''">
+            and predict_type = #{predictType}
+        </if>
+        order by predict_time desc
+        limit 100
+    </select>
+
+    <select id="selectAccuracyStats" resultType="map">
+        select 
+            predict_type,
+            model_version,
+            count(*) as prediction_count,
+            avg(accuracy) as avg_accuracy,
+            avg(rmse_error) as avg_rmse,
+            avg(mae_error) as avg_mae,
+            avg(confidence) as avg_confidence,
+            min(predict_time) as first_prediction,
+            max(predict_time) as latest_prediction
+        from soil_prediction 
+        where predict_time >= date_sub(now(), interval 30 day)
+        group by predict_type, model_version
+        order by predict_type, model_version
+    </select>
+
+    <select id="selectOverallStats" resultType="map">
+        select 
+            count(*) as total_predictions,
+            avg(accuracy) as average_accuracy,
+            avg(rmse_error) as average_rmse,
+            avg(mae_error) as average_mae,
+            avg(confidence) as average_confidence,
+            max(predict_time) as latest_prediction_time,
+            min(predict_time) as earliest_prediction_time
+        from soil_prediction 
+        where predict_time >= date_sub(now(), interval 30 day)
+    </select>
+        
+    <insert id="insertSoilPrediction" parameterType="SoilPrediction" useGeneratedKeys="true" keyProperty="id">
+        insert into soil_prediction
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="fieldId != null and fieldId != ''">field_id,</if>
+            <if test="predictTime != null">predict_time,</if>
+            <if test="predictedHumidity != null">predicted_humidity,</if>
+            <if test="predictedTemperature != null">predicted_temperature,</if>
+            <if test="predictedEcValue != null">predicted_ec_value,</if>
+            <if test="predictedPhValue != null">predicted_ph_value,</if>
+            <if test="accuracy != null">accuracy,</if>
+            <if test="modelVersion != null">model_version,</if>
+            <if test="predictType != null">predict_type,</if>
+            <if test="rmseError != null">rmse_error,</if>
+            <if test="maeError != null">mae_error,</if>
+            <if test="confidence != null">confidence,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="fieldId != null and fieldId != ''">#{fieldId},</if>
+            <if test="predictTime != null">#{predictTime},</if>
+            <if test="predictedHumidity != null">#{predictedHumidity},</if>
+            <if test="predictedTemperature != null">#{predictedTemperature},</if>
+            <if test="predictedEcValue != null">#{predictedEcValue},</if>
+            <if test="predictedPhValue != null">#{predictedPhValue},</if>
+            <if test="accuracy != null">#{accuracy},</if>
+            <if test="modelVersion != null">#{modelVersion},</if>
+            <if test="predictType != null">#{predictType},</if>
+            <if test="rmseError != null">#{rmseError},</if>
+            <if test="maeError != null">#{maeError},</if>
+            <if test="confidence != null">#{confidence},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <insert id="batchInsertSoilPrediction" parameterType="list">
+        insert into soil_prediction (field_id, predict_time, predicted_humidity, predicted_temperature, predicted_ec_value, predicted_ph_value, accuracy, model_version, predict_type, rmse_error, mae_error, confidence, create_time)
+        values
+        <foreach collection="predictionList" item="item" separator=",">
+            (#{item.fieldId}, #{item.predictTime}, #{item.predictedHumidity}, #{item.predictedTemperature}, #{item.predictedEcValue}, #{item.predictedPhValue}, #{item.accuracy}, #{item.modelVersion}, #{item.predictType}, #{item.rmseError}, #{item.maeError}, #{item.confidence}, now())
+        </foreach>
+    </insert>
+
+    <update id="updateSoilPrediction" parameterType="SoilPrediction">
+        update soil_prediction
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="fieldId != null and fieldId != ''">field_id = #{fieldId},</if>
+            <if test="predictTime != null">predict_time = #{predictTime},</if>
+            <if test="predictedHumidity != null">predicted_humidity = #{predictedHumidity},</if>
+            <if test="predictedTemperature != null">predicted_temperature = #{predictedTemperature},</if>
+            <if test="predictedEcValue != null">predicted_ec_value = #{predictedEcValue},</if>
+            <if test="predictedPhValue != null">predicted_ph_value = #{predictedPhValue},</if>
+            <if test="accuracy != null">accuracy = #{accuracy},</if>
+            <if test="modelVersion != null">model_version = #{modelVersion},</if>
+            <if test="predictType != null">predict_type = #{predictType},</if>
+            <if test="rmseError != null">rmse_error = #{rmseError},</if>
+            <if test="maeError != null">mae_error = #{maeError},</if>
+            <if test="confidence != null">confidence = #{confidence},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteSoilPredictionById" parameterType="Long">
+        delete from soil_prediction where id = #{id}
+    </delete>
+
+    <delete id="deleteSoilPredictionByIds" parameterType="String">
+        delete from soil_prediction where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

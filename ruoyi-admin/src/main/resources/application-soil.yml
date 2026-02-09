@@ -1,0 +1,183 @@
+# 土壤墒情预测系统配置
+
+# LSTM模型服务配置
+lstm:
+  service:
+    # LSTM微服务地址
+    url: http://localhost:8081
+    # 请求超时时间(毫秒)
+    timeout: 30000
+    # 重试次数
+    retry-count: 3
+    # 重试间隔(毫秒)
+    retry-interval: 1000
+    # 是否启用降级策略
+    fallback-enabled: true
+    
+  model:
+    # 默认模型版本
+    default-version: v1.0
+    # 模型文件路径
+    model-path: /models/lstm/
+    # 支持的预测类型
+    predict-types:
+      - type: "1"
+        name: "小时级预测"
+        description: "基于最近7天数据预测未来1-24小时"
+        history-days: 7
+        max-predict-hours: 24
+      - type: "2" 
+        name: "天级预测"
+        description: "基于最近30天数据预测未来1-7天"
+        history-days: 30
+        max-predict-days: 7
+      - type: "3"
+        name: "周级预测" 
+        description: "基于最近90天数据预测未来1-4周"
+        history-days: 90
+        max-predict-weeks: 4
+
+# 数据采集配置
+data:
+  collection:
+    # 数据采集间隔(分钟)
+    interval: 60
+    # 批量处理大小
+    batch-size: 1000
+    # 数据验证规则
+    validation:
+      temperature:
+        min: -50.0
+        max: 80.0
+      humidity:
+        min: 0.0
+        max: 100.0
+      ec-value:
+        min: 0.0
+        max: 10.0
+      ph-value:
+        min: 0.0
+        max: 14.0
+    
+  # 数据预处理配置
+  preprocessing:
+    # 是否启用异常值检测
+    outlier-detection: true
+    # 异常值检测方法(zscore/iqr/isolation)
+    outlier-method: zscore
+    # Z-score阈值
+    zscore-threshold: 3.0
+    # 是否启用数据插值
+    interpolation: true
+    # 插值方法(linear/spline/polynomial)
+    interpolation-method: linear
+    
+  # 数据归一化配置
+  normalization:
+    # 归一化方法(minmax/zscore/robust)
+    method: minmax
+    # 归一化范围
+    range:
+      min: 0.0
+      max: 1.0
+
+# 预警配置
+alert:
+  # 是否启用预警
+  enabled: true
+  # 预警检查间隔(分钟)
+  check-interval: 10
+  # 预警通知配置
+  notification:
+    # 系统通知
+    system:
+      enabled: true
+    # 邮件通知
+    email:
+      enabled: false
+      smtp-host: smtp.example.com
+      smtp-port: 587
+      username: alert@example.com
+      password: password
+      from: alert@example.com
+    # 短信通知
+    sms:
+      enabled: false
+      api-url: http://sms.api.com
+      api-key: your-api-key
+      
+# 定时任务配置
+scheduler:
+  # 自动预测任务
+  auto-prediction:
+    # 是否启用
+    enabled: true
+    # 执行时间(cron表达式)
+    cron: "0 0 */6 * * ?" # 每6小时执行一次
+    # 预测类型
+    predict-types: ["1", "2"]
+    # 目标地块(空表示所有地块)
+    target-fields: []
+    
+  # 数据清理任务
+  data-cleanup:
+    # 是否启用
+    enabled: true
+    # 执行时间(cron表达式) 
+    cron: "0 0 2 * * ?" # 每天凌晨2点执行
+    # 数据保留天数
+    retention-days: 90
+    
+  # 模型性能监控任务
+  model-monitoring:
+    # 是否启用
+    enabled: true
+    # 执行时间(cron表达式)
+    cron: "0 0 1 * * ?" # 每天凌晨1点执行
+    # 性能阈值
+    accuracy-threshold: 70.0
+    # 是否自动重训练
+    auto-retrain: false
+
+# 缓存配置
+cache:
+  # Redis缓存配置
+  redis:
+    # 预测结果缓存时间(秒)
+    prediction-ttl: 3600
+    # 历史数据缓存时间(秒)
+    history-data-ttl: 1800
+    # 统计数据缓存时间(秒)
+    statistics-ttl: 600
+    
+# 监控配置
+monitoring:
+  # 性能监控
+  performance:
+    # 是否启用
+    enabled: true
+    # 监控指标
+    metrics:
+      - prediction-accuracy
+      - response-time
+      - error-rate
+      - data-quality
+      
+  # 健康检查
+  health:
+    # 检查间隔(秒)
+    check-interval: 30
+    # 超时时间(秒)
+    timeout: 10
+    
+# 日志配置
+logging:
+  level:
+    com.ruoyi.soil: DEBUG
+    com.ruoyi.soil.service.impl.LstmModelServiceImpl: INFO
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/soil-system.log
+    max-size: 100MB
+    max-history: 30

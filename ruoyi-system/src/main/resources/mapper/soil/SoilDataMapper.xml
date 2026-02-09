@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.soil.mapper.SoilDataMapper">
+    
+    <resultMap type="SoilData" id="SoilDataResult">
+        <result property="id"    column="id"    />
+        <result property="deviceId"    column="device_id"    />
+        <result property="fieldId"    column="field_id"    />
+        <result property="temperature"    column="temperature"    />
+        <result property="humidity"    column="humidity"    />
+        <result property="ecValue"    column="ec_value"    />
+        <result property="phValue"    column="ph_value"    />
+        <result property="collectTime"    column="collect_time"    />
+        <result property="dataStatus"    column="data_status"    />
+        <result property="longitude"    column="longitude"    />
+        <result property="latitude"    column="latitude"    />
+        <result property="altitude"    column="altitude"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectSoilDataVo">
+        select id, device_id, field_id, temperature, humidity, ec_value, ph_value, collect_time, data_status, longitude, latitude, altitude, create_time, update_time from soil_data
+    </sql>
+
+    <select id="selectSoilDataList" parameterType="SoilData" resultMap="SoilDataResult">
+        <include refid="selectSoilDataVo"/>
+        <where>  
+            <if test="deviceId != null  and deviceId != ''"> and device_id = #{deviceId}</if>
+            <if test="fieldId != null  and fieldId != ''"> and field_id = #{fieldId}</if>
+            <if test="temperature != null "> and temperature = #{temperature}</if>
+            <if test="humidity != null "> and humidity = #{humidity}</if>
+            <if test="ecValue != null "> and ec_value = #{ecValue}</if>
+            <if test="phValue != null "> and ph_value = #{phValue}</if>
+            <if test="collectTime != null "> and collect_time = #{collectTime}</if>
+            <if test="dataStatus != null  and dataStatus != ''"> and data_status = #{dataStatus}</if>
+            <if test="longitude != null "> and longitude = #{longitude}</if>
+            <if test="latitude != null "> and latitude = #{latitude}</if>
+            <if test="altitude != null "> and altitude = #{altitude}</if>
+        </where>
+        order by collect_time desc
+    </select>
+    
+    <select id="selectSoilDataById" parameterType="Long" resultMap="SoilDataResult">
+        <include refid="selectSoilDataVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectHistoryDataByFieldId" resultMap="SoilDataResult">
+        <include refid="selectSoilDataVo"/>
+        where field_id = #{fieldId}
+        <if test="startTime != null and startTime != ''">
+            and collect_time >= #{startTime}
+        </if>
+        <if test="endTime != null and endTime != ''">
+            and collect_time &lt;= #{endTime}
+        </if>
+        and data_status = '0'
+        order by collect_time asc
+    </select>
+
+    <select id="selectLatestDataByFieldId" parameterType="String" resultMap="SoilDataResult">
+        <include refid="selectSoilDataVo"/>
+        where field_id = #{fieldId}
+        and data_status = '0'
+        order by collect_time desc
+        limit 1
+    </select>
+
+    <select id="selectDataCountByField" resultType="map">
+        select 
+            field_id,
+            count(*) as count,
+            count(case when data_status = '0' then 1 end) as normal_count,
+            count(case when data_status = '1' then 1 end) as abnormal_count,
+            max(collect_time) as latest_time
+        from soil_data 
+        group by field_id
+        order by field_id
+    </select>
+
+    <select id="selectAbnormalDataStats" resultType="map">
+        select 
+            field_id,
+            date(collect_time) as collect_date,
+            count(case when data_status = '1' then 1 end) as abnormal_count,
+            count(*) as total_count
+        from soil_data 
+        where collect_time >= date_sub(now(), interval 7 day)
+        group by field_id, date(collect_time)
+        having abnormal_count > 0
+        order by collect_date desc, field_id
+    </select>
+        
+    <insert id="insertSoilData" parameterType="SoilData" useGeneratedKeys="true" keyProperty="id">
+        insert into soil_data
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="deviceId != null and deviceId != ''">device_id,</if>
+            <if test="fieldId != null and fieldId != ''">field_id,</if>
+            <if test="temperature != null">temperature,</if>
+            <if test="humidity != null">humidity,</if>
+            <if test="ecValue != null">ec_value,</if>
+            <if test="phValue != null">ph_value,</if>
+            <if test="collectTime != null">collect_time,</if>
+            <if test="dataStatus != null">data_status,</if>
+            <if test="longitude != null">longitude,</if>
+            <if test="latitude != null">latitude,</if>
+            <if test="altitude != null">altitude,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="deviceId != null and deviceId != ''">#{deviceId},</if>
+            <if test="fieldId != null and fieldId != ''">#{fieldId},</if>
+            <if test="temperature != null">#{temperature},</if>
+            <if test="humidity != null">#{humidity},</if>
+            <if test="ecValue != null">#{ecValue},</if>
+            <if test="phValue != null">#{phValue},</if>
+            <if test="collectTime != null">#{collectTime},</if>
+            <if test="dataStatus != null">#{dataStatus},</if>
+            <if test="longitude != null">#{longitude},</if>
+            <if test="latitude != null">#{latitude},</if>
+            <if test="altitude != null">#{altitude},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <insert id="batchInsertSoilData" parameterType="list">
+        insert into soil_data (device_id, field_id, temperature, humidity, ec_value, ph_value, collect_time, data_status, longitude, latitude, altitude, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.deviceId}, #{item.fieldId}, #{item.temperature}, #{item.humidity}, #{item.ecValue}, #{item.phValue}, #{item.collectTime}, #{item.dataStatus}, #{item.longitude}, #{item.latitude}, #{item.altitude}, now())
+        </foreach>
+    </insert>
+
+    <update id="updateSoilData" parameterType="SoilData">
+        update soil_data
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="deviceId != null and deviceId != ''">device_id = #{deviceId},</if>
+            <if test="fieldId != null and fieldId != ''">field_id = #{fieldId},</if>
+            <if test="temperature != null">temperature = #{temperature},</if>
+            <if test="humidity != null">humidity = #{humidity},</if>
+            <if test="ecValue != null">ec_value = #{ecValue},</if>
+            <if test="phValue != null">ph_value = #{phValue},</if>
+            <if test="collectTime != null">collect_time = #{collectTime},</if>
+            <if test="dataStatus != null">data_status = #{dataStatus},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="altitude != null">altitude = #{altitude},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteSoilDataById" parameterType="Long">
+        delete from soil_data where id = #{id}
+    </delete>
+
+    <delete id="deleteSoilDataByIds" parameterType="String">
+        delete from soil_data where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
