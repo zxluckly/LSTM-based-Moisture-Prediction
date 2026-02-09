@@ -8,8 +8,7 @@
     <artifactId>ruoyi</artifactId>
     <version>3.9.1</version>
 
-    <name>ruoyi</name>
-    <url>http://www.ruoyi.vip</url>
+
     <description>土壤墒情预测系统</description>
     
     <properties>
